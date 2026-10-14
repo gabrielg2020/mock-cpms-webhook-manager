@@ -1,4 +1,4 @@
-module github.com/gabrielg2020/webhook-manager
+module github.com/gabrielg2020/mock-cpms-webhook-manager
 
 go 1.26.3
 
