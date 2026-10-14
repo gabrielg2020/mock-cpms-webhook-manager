@@ -101,10 +101,106 @@ jobs:
       - name: Run govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
+  workflow-lint:
+    name: Workflow lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run actionlint
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+
+  container:
+    name: Container
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    env:
+      IMAGE: mock-cpms-webhook-manager:ci
+      TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build image for the runner (amd64)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build image for EC2 (arm64)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/arm64
+          cache-from: type=gha
+
+      - name: Smoke test the container
+        run: |
+          docker run --detach --name smoke --publish 8080:8080 \
+            --read-only --cap-drop ALL --security-opt no-new-privileges "$IMAGE"
+
+          health_status=""
+          for attempt in $(seq 1 10); do
+            health_status=$(curl --silent --output /dev/null --write-out '%{http_code}' localhost:8080/healthz || true)
+            [ "$health_status" = "204" ] && break
+            echo "Attempt ${attempt}: health check returned '${health_status}', retrying"
+            sleep 1
+          done
+
+          if [ "$health_status" != "204" ]; then
+            docker logs smoke
+            echo "::error::Health check returned '${health_status}', expected 204"
+            exit 1
+          fi
+
+          docker stop smoke
+          exit_code=$(docker inspect smoke --format '{{.State.ExitCode}}')
+          docker logs smoke
+
+          if [ "$exit_code" != "0" ] || ! docker logs smoke 2>&1 | grep --quiet '"msg":"server stopped"'; then
+            echo "::error::Container did not shut down gracefully (exit code ${exit_code})"
+            exit 1
+          fi
+
+      - name: Export image for scanning
+        run: docker save "$IMAGE" --output image.tar
+
+      - name: Scan image with Trivy (SARIF for code scanning)
+        run: |
+          docker run --rm --volume "$PWD:/work" --volume "$HOME/.cache/trivy:/root/.cache/trivy" "$TRIVY_IMAGE" \
+            image --input /work/image.tar --format sarif --output /work/trivy.sarif
+
+      - name: Upload Trivy results to GitHub code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: trivy.sarif
+          category: trivy
+
+      - name: Fail on high or critical vulnerabilities
+        run: |
+          docker run --rm --volume "$PWD:/work" --volume "$HOME/.cache/trivy:/root/.cache/trivy" "$TRIVY_IMAGE" \
+            image --input /work/image.tar --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+
   report:
     name: Report
     if: always() && github.event_name == 'pull_request'
-    needs: [lint, test, vulncheck]
+    needs: [lint, test, vulncheck, workflow-lint, container]
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -121,6 +217,8 @@ jobs:
           TEST_RESULT: ${{ needs.test.result }}
           COVERAGE: ${{ needs.test.outputs.coverage }}
           VULN_RESULT: ${{ needs.vulncheck.result }}
+          WORKFLOW_LINT_RESULT: ${{ needs.workflow-lint.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
         run: |
           icon() {
             case "$1" in
@@ -139,6 +237,8 @@ jobs:
           | Lint | $(icon "$LINT_RESULT") ${LINT_RESULT} | ${LINT_ISSUES:-unknown} issues (golangci-lint incl. gosec) |
           | Test | $(icon "$TEST_RESULT") ${TEST_RESULT} | Coverage ${COVERAGE:-unknown}% (threshold ${COVERAGE_THRESHOLD}%) |
           | Vulnerability check | $(icon "$VULN_RESULT") ${VULN_RESULT} | govulncheck |
+          | Workflow lint | $(icon "$WORKFLOW_LINT_RESULT") ${WORKFLOW_LINT_RESULT} | actionlint + shellcheck |
+          | Container | $(icon "$CONTAINER_RESULT") ${CONTAINER_RESULT} | Build (amd64 + arm64), smoke test, Trivy |
 
           [View the full run](${RUN_URL})
           EOF
