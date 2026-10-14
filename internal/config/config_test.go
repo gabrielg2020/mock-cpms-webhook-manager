@@ -17,12 +17,12 @@ func TestLoad(t *testing.T) {
 			want: Config{Environment: "development", ListenAddr: ":8080"},
 		},
 		{
-			name: "reads values from the evironment",
+			name: "reads values from the environment",
 			env:  map[string]string{"APP_ENV": "production", "LISTEN_ADDR": ":9000"},
 			want: Config{Environment: "production", ListenAddr: ":9000"},
 		},
 		{
-			name:    "rejects an unkown environment",
+			name:    "rejects an unknown environment",
 			env:     map[string]string{"APP_ENV": "staging"},
 			wantErr: true,
 		},
@@ -40,7 +40,7 @@ func TestLoad(t *testing.T) {
 
 			if testCase.wantErr {
 				if err == nil {
-					t.Fatal("expected and error, got nil")
+					t.Fatal("expected an error, got nil")
 				}
 				return
 			}

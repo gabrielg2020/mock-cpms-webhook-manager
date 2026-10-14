@@ -11,19 +11,19 @@ type Config struct {
 	ListenAddr  string
 }
 
-var validEnvronments = map[string]bool{
+var validEnvironments = map[string]bool{
 	"development": true,
 	"production":  true,
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		Environment: envOrDefualt("APP_ENV", "development"),
-		ListenAddr:  envOrDefualt("LISTEN_ADDR", ":8080"),
+		Environment: envOrDefault("APP_ENV", "development"),
+		ListenAddr:  envOrDefault("LISTEN_ADDR", ":8080"),
 	}
 
 	var problems []string
-	if !validEnvronments[cfg.Environment] {
+	if !validEnvironments[cfg.Environment] {
 		problems = append(problems, fmt.Sprintf("APP_ENV must be development or production, got %q", cfg.Environment))
 	}
 
@@ -33,7 +33,7 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
-func envOrDefualt(key, fallback string) string {
+func envOrDefault(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok && value != "" {
 		return value
 	}

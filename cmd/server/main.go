@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gabrielg2020/webhook-manager/internal/config"
+	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/config"
 	"github.com/go-chi/chi/v5"
 )
 
