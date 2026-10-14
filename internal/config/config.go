@@ -8,18 +8,18 @@ import (
 
 type Config struct {
 	Environment string
-	ListenAddr string
+	ListenAddr  string
 }
 
-var validEnvronments = map[string]bool {
+var validEnvronments = map[string]bool{
 	"development": true,
-	"production": true,
+	"production":  true,
 }
 
 func Load() (Config, error) {
 	cfg := Config{
 		Environment: envOrDefualt("APP_ENV", "development"),
-		ListenAddr: envOrDefualt("LISTEN_ADDR", ":8080"),
+		ListenAddr:  envOrDefualt("LISTEN_ADDR", ":8080"),
 	}
 
 	var problems []string
@@ -35,7 +35,7 @@ func Load() (Config, error) {
 
 func envOrDefualt(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok && value != "" {
-		return  value
+		return value
 	}
 	return fallback
 }

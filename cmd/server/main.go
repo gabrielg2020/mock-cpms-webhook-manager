@@ -28,13 +28,13 @@ func main() {
 	})
 
 	server := &http.Server{
-		Addr: cfg.ListenAddr,
-		Handler: router,
+		Addr:              cfg.ListenAddr,
+		Handler:           router,
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout: 5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout: 60 * time.Second,
-		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -47,7 +47,7 @@ func main() {
 	}()
 
 	select {
-	case err:= <-serverErrors:
+	case err := <-serverErrors:
 		logger.Error("server failed", "error", err)
 		os.Exit(1)
 	case <-ctx.Done():

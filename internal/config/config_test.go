@@ -6,24 +6,24 @@ import (
 
 func TestLoad(t *testing.T) {
 	testCases := []struct {
-		name string
-		env map[string]string
-		want Config
+		name    string
+		env     map[string]string
+		want    Config
 		wantErr bool
 	}{
 		{
 			name: "uses defaults when nothing is set",
-			env: map[string]string{},
+			env:  map[string]string{},
 			want: Config{Environment: "development", ListenAddr: ":8080"},
 		},
 		{
 			name: "reads values from the evironment",
-			env: map[string]string{"APP_ENV": "production", "LISTEN_ADDR": ":9000"},
+			env:  map[string]string{"APP_ENV": "production", "LISTEN_ADDR": ":9000"},
 			want: Config{Environment: "production", ListenAddr: ":9000"},
 		},
 		{
-			name: "rejects an unkown environment",
-			env: map[string]string{"APP_ENV": "staging"},
+			name:    "rejects an unkown environment",
+			env:     map[string]string{"APP_ENV": "staging"},
 			wantErr: true,
 		},
 	}
