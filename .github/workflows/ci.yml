@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COVERAGE_THRESHOLD: "80"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    outputs:
+      issues: ${{ steps.count.outputs.issues }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.14.0
+          args: --output.text.path=stdout --output.sarif.path=golangci-lint.sarif
+
+      - name: Upload results to GitHub code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: golangci-lint.sarif
+          category: golangci-lint
+
+      - name: Count lint issues
+        id: count
+        if: always()
+        run: echo "issues=$(jq '[.runs[].results[]] | length' golangci-lint.sarif)" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    outputs:
+      coverage: ${{ steps.coverage.outputs.total }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests with the race detector and coverage
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: Enforce coverage threshold
+        id: coverage
+        run: |
+          grep -v '/cmd/' coverage.out > coverage.internal.out
+          total=$(go tool cover -func=coverage.internal.out | awk '/^total:/ { sub("%", "", $3); print $3 }')
+          echo "total=${total}" >> "$GITHUB_OUTPUT"
+          echo "### Coverage: ${total}% (threshold ${COVERAGE_THRESHOLD}%)" >> "$GITHUB_STEP_SUMMARY"
+          if ! awk -v total="$total" -v threshold="$COVERAGE_THRESHOLD" 'BEGIN { exit !(total >= threshold) }'; then
+            echo "::error::Coverage ${total}% is below the ${COVERAGE_THRESHOLD}% threshold"
+            exit 1
+          fi
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: coverage.out
+
+  vulncheck:
+    name: Vulnerability check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+
+  report:
+    name: Report
+    if: always() && github.event_name == 'pull_request'
+    needs: [lint, test, vulncheck]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post CI summary on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          LINT_ISSUES: ${{ needs.lint.outputs.issues }}
+          TEST_RESULT: ${{ needs.test.result }}
+          COVERAGE: ${{ needs.test.outputs.coverage }}
+          VULN_RESULT: ${{ needs.vulncheck.result }}
+        run: |
+          icon() {
+            case "$1" in
+              success) echo "✔" ;;
+              skipped | cancelled) echo "◯" ;;
+              *) echo "✖" ;;
+            esac
+          }
+
+          body=$(cat <<EOF
+          <!-- ci-summary -->
+          ### CI results for \`${COMMIT_SHA:0:7}\`
+
+          | Check | Result | Detail |
+          |---|---|---|
+          | Lint | $(icon "$LINT_RESULT") ${LINT_RESULT} | ${LINT_ISSUES:-unknown} issues (golangci-lint incl. gosec) |
+          | Test | $(icon "$TEST_RESULT") ${TEST_RESULT} | Coverage ${COVERAGE:-unknown}% (threshold ${COVERAGE_THRESHOLD}%) |
+          | Vulnerability check | $(icon "$VULN_RESULT") ${VULN_RESULT} | govulncheck |
+
+          [View the full run](${RUN_URL})
+          EOF
+          )
+
+          comment_id=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- ci-summary -->")) | .id' | head -n 1)
+
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH "repos/${REPO}/issues/comments/${comment_id}" -f body="$body" > /dev/null
+          else
+            gh api --method POST "repos/${REPO}/issues/${PR_NUMBER}/comments" -f body="$body" > /dev/null
+          fi
