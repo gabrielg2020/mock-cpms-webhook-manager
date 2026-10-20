@@ -3,5 +3,5 @@ locals {
   domain      = "uni.gabrielg.tech"
   alert_email = "dev@gabrielg.tech"
 
-  github_repository = "gabrielg2020/mock-cpms-webhook-manager"
+  github_oidc_repository = "gabrielg2020@80750139/mock-cpms-webhook-manager@1418775304"
 }

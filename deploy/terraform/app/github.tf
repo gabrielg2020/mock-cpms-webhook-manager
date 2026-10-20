@@ -21,7 +21,7 @@ data "aws_iam_policy_document" "github_publish_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${local.github_repository}:environment:production"]
+      values   = ["repo:${local.github_oidc_repository}:environment:production"]
     }
   }
 }
