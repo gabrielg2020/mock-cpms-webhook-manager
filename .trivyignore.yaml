@@ -1,0 +1,20 @@
+misconfigurations:
+  - id: AWS-0089
+    paths:
+      - bootstrap/main.tf
+    statement: Access logging would need a second bucket; CloudTrail management events already record changes to the state bucket.
+
+  - id: AWS-0132
+    paths:
+      - bootstrap/main.tf
+    statement: SSE-S3 is enough because secrets are kept out of state with write-only arguments; a KMS key would add cost and key policy management.
+
+  - id: AWS-0033
+    paths:
+      - app/ecr.tf
+    statement: Images hold no secrets and are encrypted at rest by ECR; a KMS key would only add cost.
+
+  - id: AWS-0017
+    paths:
+      - app/monitoring.tf
+    statement: Logs hold no secrets and are encrypted at rest by CloudWatch; a KMS key would only add cost.
