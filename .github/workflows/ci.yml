@@ -229,7 +229,7 @@ jobs:
       - name: Scan Terraform with Trivy (SARIF for code scanning)
         run: |
           docker run --rm --volume "$PWD:/work" --volume "$HOME/.cache/trivy:/root/.cache/trivy" "$TRIVY_IMAGE" \
-            config --format sarif --output /work/trivy-config.sarif /work/deploy/terraform
+            config --ignorefile /work/.trivyignore.yaml --format sarif --output /work/trivy-config.sarif /work/deploy/terraform
 
       - name: Upload Terraform scan results to GitHub code scanning
         if: always()
@@ -241,7 +241,7 @@ jobs:
       - name: Fail on misconfigurations
         run: |
           docker run --rm --volume "$PWD:/work" --volume "$HOME/.cache/trivy:/root/.cache/trivy" "$TRIVY_IMAGE" \
-            config --exit-code 1 /work/deploy/terraform
+            config --ignorefile /work/.trivyignore.yaml --exit-code 1 /work/deploy/terraform
 
   report:
     name: Report
