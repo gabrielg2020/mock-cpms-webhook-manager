@@ -10,5 +10,5 @@ output "ecr_repository_url" {
 
 output "github_publish_role_arn" {
   description = "Role the deploy workflow assumes through GitHub OIDC"
-  value = aws_iam_role.github_publish.arn
+  value       = aws_iam_role.github_publish.arn
 }

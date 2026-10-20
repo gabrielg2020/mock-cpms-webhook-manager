@@ -35,7 +35,13 @@ resource "aws_iam_role" "github_publish" {
 
 data "aws_iam_policy_document" "github_publish" {
   statement {
-    sid = "AuthenticateToEcr"
+    sid       = "AuthenticateToEcr"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "PushToAppRepository"
     actions = [
       "ecr:BatchCheckLayerAvailability",
       "ecr:BatchGetImage",
