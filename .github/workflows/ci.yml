@@ -246,7 +246,7 @@ jobs:
   report:
     name: Report
     if: always() && github.event_name == 'pull_request'
-    needs: [lint, test, vulncheck, workflow-lint, container]
+    needs: [lint, test, vulncheck, workflow-lint, container, terraform]
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -265,6 +265,7 @@ jobs:
           VULN_RESULT: ${{ needs.vulncheck.result }}
           WORKFLOW_LINT_RESULT: ${{ needs.workflow-lint.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
+          TERRAFORM_RESULT: ${{ needs.terraform.result }}
         run: |
           icon() {
             case "$1" in
