@@ -1,0 +1,76 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-1
+  PUBLISH_ROLE_ARN: arn:aws:iam::455101323066:role/mock-cpms-webhook-manager-github-publish
+  ECR_REPOSITORY: mock-cpms-webhook-manager
+
+jobs:
+  publish:
+    name: Publish Image
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.IMAGE_TAG }}
+          persist-credentials: false
+
+      - name: Assume the publish role through OIDC
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.PUBLISH_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Check whether this commit is already published
+        id: existing
+        run: |
+          if aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$IMAGE_TAG" > /dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "Image ${IMAGE_TAG} already exists; skipping the build"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.existing.outputs.published != 'true'
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build and push the arm64 image
+        if: steps.existing.outputs.published != 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          provenance: mode=max
+          sbom: true
+
+      - name: Record the published image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: echo "### Image \`${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}`" >> "$GITHUB_STEP_SUMMARY"
