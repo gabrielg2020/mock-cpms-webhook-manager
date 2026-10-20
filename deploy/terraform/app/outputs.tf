@@ -7,3 +7,8 @@ output "ecr_repository_url" {
   description = "Registry path the deploy workflow pushes images to"
   value       = aws_ecr_repository.app.repository_url
 }
+
+output "github_publish_role_arn" {
+  description = "Role the deploy workflow assumes through GitHub OIDC"
+  value       = aws_iam_role.github_publish.arn
+}
