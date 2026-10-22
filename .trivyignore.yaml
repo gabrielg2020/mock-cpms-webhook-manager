@@ -18,3 +18,8 @@ misconfigurations:
     paths:
       - app/monitoring.tf
     statement: Logs hold no secrets and are encrypted at rest by CloudWatch; a KMS key would only add cost.
+
+  - id: AWS-0104
+    paths:
+      - app/network.tf
+    statement: Outbound is limited to TCP 443; destinations (AWS APIs, ECR, Docker Hub, package repositories, Let's Encrypt) have changing IPs, and VPC endpoints or an egress proxy would cost more than the server.
