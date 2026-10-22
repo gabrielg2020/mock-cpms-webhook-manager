@@ -15,7 +15,6 @@ concurrency:
 env:
   COVERAGE_THRESHOLD: "80"
   TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
-  CADDY_IMAGE: caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
 
 jobs:
   lint:
@@ -126,7 +125,6 @@ jobs:
       security-events: write
     env:
       IMAGE: mock-cpms-webhook-manager:ci
-      TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -251,6 +249,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Read the pinned Caddy image
+        run: |
+          read -r _ image < deploy/caddy/Dockerfile
+          echo "CADDY_IMAGE=${image}" >> "$GITHUB_ENV"
 
       - name: Check Caddyfile formatting
         run: docker run --rm --volume "$PWD/deploy/caddy:/work:ro" "$CADDY_IMAGE" caddy fmt --diff /work/Caddyfile

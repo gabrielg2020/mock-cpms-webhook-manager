@@ -6,7 +6,7 @@ resource "aws_ssm_parameter" "image_tag" {
   name        = "/${local.name}/image_tag"
   description = "Commit SHA of the image the server runs; updated by the deploy workflow"
   type        = "String"
-  value       = local.inital_image_tag
+  value       = local.initial_image_tag
 
   lifecycle {
     ignore_changes = [value]
