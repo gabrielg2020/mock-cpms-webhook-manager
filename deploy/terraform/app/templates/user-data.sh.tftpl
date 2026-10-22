@@ -14,20 +14,7 @@ docker network inspect web > /dev/null 2>&1 || docker network create web
 
 install -d -m 0755 /etc/caddy
 cat > /etc/caddy/Caddyfile <<'CADDYFILE'
-{
-  email ${alert_email}
-}
-
-${domain} {
-    encode zstd gzip
-
-    header {
-      Strict-Transport-Security "max-age=31536000"
-      -Server
-    }
-
-    reverse-proxy app:8080
-}
+${caddyfile}
 CADDYFILE
 
 cat > /usr/local/bin/deploy-app <<'DEPLOY'
@@ -69,6 +56,7 @@ docker rm --force caddy > /dev/null 2>&1 || true
 docker run --detach --name caddy --network web --restart unless-stopped \
   --publish 80:80 --publish 443:443 \
   --read-only --tmpfs /tmp --cap-drop ALL --cap-add NET_BIND_SERVICE --security-opt no-new-privileges \
+  --env DOMAIN="${domain}" --env ACME_EMAIL="${alert_email}" \
   --volume /etc/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
   --volume caddy-data:/data --volume caddy-config:/config \
   --log-driver awslogs --log-opt awslogs-region="${region}" \

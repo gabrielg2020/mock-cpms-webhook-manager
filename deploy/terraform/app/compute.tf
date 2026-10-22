@@ -30,6 +30,7 @@ resource "aws_instance" "app" {
     domain              = local.domain
     alert_email         = local.alert_email
     caddy_image         = local.caddy_image
+    caddyfile           = chomp(file("${path.module}/../../caddy/Caddyfile"))
   })
 
   metadata_options {

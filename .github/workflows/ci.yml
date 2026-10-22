@@ -15,6 +15,7 @@ concurrency:
 env:
   COVERAGE_THRESHOLD: "80"
   TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+  CADDY_IMAGE: caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
 
 jobs:
   lint:
@@ -243,10 +244,27 @@ jobs:
           docker run --rm --volume "$PWD:/work" --volume "$HOME/.cache/trivy:/root/.cache/trivy" "$TRIVY_IMAGE" \
             config --ignorefile /work/.trivyignore.yaml --exit-code 1 /work/deploy/terraform
 
+  caddy:
+    name: Caddy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check Caddyfile formatting
+        run: docker run --rm --volume "$PWD/deploy/caddy:/work:ro" "$CADDY_IMAGE" caddy fmt --diff /work/Caddyfile
+
+      - name: Validate Caddyfile
+        run: |
+          docker run --rm --volume "$PWD/deploy/caddy:/work:ro" \
+            --env DOMAIN=uni.gabrielg.tech --env ACME_EMAIL=dev@gabrielg.tech \
+            "$CADDY_IMAGE" caddy validate --config /work/Caddyfile --adapter caddyfile
+
   report:
     name: Report
     if: always() && github.event_name == 'pull_request'
-    needs: [lint, test, vulncheck, workflow-lint, container, terraform]
+    needs: [lint, test, vulncheck, workflow-lint, container, terraform, caddy]
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -266,6 +284,7 @@ jobs:
           WORKFLOW_LINT_RESULT: ${{ needs.workflow-lint.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
           TERRAFORM_RESULT: ${{ needs.terraform.result }}
+          CADDY_RESULT: ${{ needs.caddy.result }}
         run: |
           icon() {
             case "$1" in
@@ -287,6 +306,7 @@ jobs:
           | Workflow lint | $(icon "$WORKFLOW_LINT_RESULT") ${WORKFLOW_LINT_RESULT} | actionlint + shellcheck |
           | Container | $(icon "$CONTAINER_RESULT") ${CONTAINER_RESULT} | Build (amd64 + arm64), smoke test, Trivy |
           | Terraform | $(icon "$TERRAFORM_RESULT") ${TERRAFORM_RESULT} | fmt, validate, Trivy config |
+          | Caddy | $(icon "$CADDY_RESULT") ${CADDY_RESULT} | fmt, validate |
 
           [View the full run](${RUN_URL})
           EOF
