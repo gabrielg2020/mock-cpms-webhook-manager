@@ -19,14 +19,14 @@ cat > /etc/caddy/Caddyfile <<'CADDYFILE'
 }
 
 ${domain} {
-  encode zstd gzip
+    encode zstd gzip
 
-  header {
-    Strict-Transport-Security "max-age=31536000"
-    -Server
-  }
+    header {
+      Strict-Transport-Security "max-age=31536000"
+      -Server
+    }
 
-  reverses-proxy app:8080
+    reverse-proxy app:8080
 }
 CADDYFILE
 
