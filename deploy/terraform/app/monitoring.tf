@@ -6,7 +6,7 @@ resource "aws_cloudwatch_log_group" "app" {
 resource "aws_budgets_budget" "monthly" {
   name         = "${local.name}-monthly"
   budget_type  = "COST"
-  limit_amount = "6"
+  limit_amount = "12"
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
 
@@ -15,6 +15,14 @@ resource "aws_budgets_budget" "monthly" {
     threshold                  = 80
     threshold_type             = "PERCENTAGE"
     notification_type          = "ACTUAL"
+    subscriber_email_addresses = [local.alert_email]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
     subscriber_email_addresses = [local.alert_email]
   }
 }

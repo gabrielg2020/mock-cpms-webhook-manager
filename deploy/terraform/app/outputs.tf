@@ -12,3 +12,13 @@ output "github_publish_role_arn" {
   description = "Role the deploy workflow assumes through GitHub OIDC"
   value       = aws_iam_role.github_publish.arn
 }
+
+output "app_url" {
+  description = "Public URL of the app"
+  value       = "https://${local.domain}"
+}
+
+output "instance_id" {
+  description = "EC2 instance for Session Manager: aws ssm start-session --target <id>"
+  value       = aws_instance.app.id
+}

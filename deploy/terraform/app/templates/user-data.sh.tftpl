@@ -1,0 +1,70 @@
+#!/bin/bash
+set -euo pipefail
+
+dnf install -y docker
+systemctl enable --now docker
+
+docker network inspect web > /dev/null 2>&1 || docker network create web
+
+install -d -m 0755 /etc/caddy
+cat > /etc/caddy/Caddyfile <<'CADDYFILE'
+{
+  email ${alert_email}
+}
+
+${domain} {
+  encode zstd gzip
+
+  header {
+    Strict-Transport-Security "max-age=31536000"
+    -Server
+  }
+
+  reverses-proxy app:8080
+}
+CADDYFILE
+
+cat > /usr/local/bin/deploy-app <<'DEPLOY'
+#!/bin/bash
+set -euo pipefail
+
+tag=$(aws ssm get-parameter --region "${region}" --name "${image_tag_parameter}" --query Parameter.Value --output text)
+image="${repository_url}:$${tag}"
+
+aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${registry}"
+docker pull "$${image}"
+
+docker rm --force app > /dev/null 2>&1 || true
+docker run --detach --name app --network web --restart unless-stopped \
+  --publish 127.0.0.1:8080:8080 \
+  --read-only --cap-drop ALL --security-opt no-new-privileges \
+  --env APP_ENV=production \
+  --log-driver awslogs --log-opt awslogs-region="${region}" \
+  --log-opt awslogs-group="${log_group}" --log-opt awslogs-stream=app \
+  "$${image}"
+
+for attempt in $(seq 1 15); do
+  if [ "$(curl --silent --output /dev/null --write-out '%%{http_code}' http://127.0.0.1:8080/healthz)" = "204" ]; then
+    echo "Deployed $${image} after $${attempt} health check(s)"
+    exit 0
+  fi
+  sleep 1
+done
+
+docker logs app || true
+echo "Health check failed for $${image}" >&2
+exit 1
+DEPLOY
+chmod 0755 /usr/local/bin/deploy-app
+
+/usr/local/bin/deploy-app
+
+docker rm --force caddy > /dev/null 2>&1 || true
+docker run --detach --name caddy --network web --restart unless-stopped \
+  --publish 80:80 --publish 443:443 \
+  --read-only --tmpfs /tmp --cap-drop ALL --cap-add NET_BIND_SERVICE --security-opt no-new-privileges \
+  --volume /etc/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
+  --volume caddy-data:/data --volume caddy-config:/config \
+  --log-driver awslogs --log-opt awslogs-region="${region}" \
+  --log-opt awslogs-group="${log_group}" --log-opt awslogs-stream=caddy \
+  "${caddy_image}"
