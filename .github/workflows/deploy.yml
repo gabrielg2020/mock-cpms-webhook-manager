@@ -17,6 +17,11 @@ env:
   AWS_REGION: eu-west-1
   PUBLISH_ROLE_ARN: arn:aws:iam::455101323066:role/mock-cpms-webhook-manager-github-publish
   ECR_REPOSITORY: mock-cpms-webhook-manager
+  DEPLOY_ROLE_ARN: arn:aws:iam::455101323066:role/mock-cpms-webhook-manager-github-deploy
+  IMAGE_TAG_PARAMETER: /mock-cpms-webhook-manager/image_tag
+  DEPLOY_DOCUMENT: mock-cpms-webhook-manager-deploy-app
+  INSTANCE_NAME: mock-cpms-webhook-manager
+  APP_URL: https://uni.gabrielg.tech
 
 jobs:
   publish:
@@ -74,3 +79,52 @@ jobs:
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: echo "### Image \`${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy to server
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.IMAGE_TAG }}
+          persist-credentials: false
+
+      - name: Assume the deploy role through OIDC
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Record the image currently deployed
+        id: previous
+        run: echo "tag=$(aws ssm get-parameter --name "$IMAGE_TAG_PARAMETER" --query Parameter.Value --output text)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy the new image
+        run: bash .github/scripts/deploy-to-server.sh "$IMAGE_TAG"
+
+      - name: Check the public endpoint
+        run: |
+          for _ in $(seq 1 10); do
+            if [ "$(curl --silent --output /dev/null --write-out '%{http_code}' "${APP_URL}/healthz")" = "204" ]; then
+              echo "### Deployed \`${IMAGE_TAG}\` to ${APP_URL}" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::${APP_URL}/healthz did not return 204 after the deploy"
+          exit 1
+
+      - name: Roll back to the previous image
+        if: failure() && steps.previous.outputs.tag != '' && steps.previous.outputs.tag != env.IMAGE_TAG
+        env:
+          PREVIOUS_TAG: ${{ steps.previous.outputs.tag }}
+        run: |
+          echo "### Rolled back to \`${PREVIOUS_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+          bash .github/scripts/deploy-to-server.sh "$PREVIOUS_TAG"

@@ -8,6 +8,7 @@
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		-Server
+		-Via
 	}
 
 	reverse_proxy app:8080
