@@ -26,6 +26,7 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 	options.Add("_pragma", "foreign_keys(1)")
 	options.Add("_pragma", "journal_mode(WAL)")
 	options.Add("_pragma", "busy_timeout(5000)")
+	options.Add("_pragma", "temp_store(MEMORY)")
 	options.Set("_txlock", "immediate")
 
 	db, err := sql.Open("sqlite", "file:"+path+"?"+options.Encode())

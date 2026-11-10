@@ -63,6 +63,14 @@ func TestOpenAppliesConnectionSettings(t *testing.T) {
 	if busyTimeout != 5000 {
 		t.Errorf("busy_timeout = %d, want 5000", busyTimeout)
 	}
+
+	var tempStore int
+	if err := db.QueryRowContext(ctx, "PRAGMA temp_store").Scan(&tempStore); err != nil {
+		t.Fatalf("read temp_store: %v", err)
+	}
+	if tempStore != 2 {
+		t.Errorf("temp_store = %d, want 2 (memory)", tempStore)
+	}
 }
 
 func TestOpenFailsWhenDirectoryCannotBeCreated(t *testing.T) {
