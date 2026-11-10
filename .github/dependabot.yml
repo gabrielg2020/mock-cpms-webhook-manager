@@ -28,3 +28,6 @@ updates:
       interval: weekly
     commit-message:
       prefix: "build(deps)"
+    ignore:
+      - dependency-name: golang
+        update-types: [version-update:semver-major, version-update:semver-minor]
