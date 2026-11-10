@@ -1,7 +1,7 @@
 CREATE TABLE teams (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL UNIQUE CHECK (length(name) BETWEEN 2 AND 60),
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 ) STRICT;
 
 CREATE TABLE users (
