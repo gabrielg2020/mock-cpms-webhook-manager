@@ -11,6 +11,7 @@ dnf install -y docker
 systemctl enable --now docker
 
 docker network inspect web > /dev/null 2>&1 || docker network create web
+install -d -o 65532 -g 65532 -m 0750 /var/lib/app-data
 
 install -d -m 0755 /etc/caddy
 cat > /etc/caddy/Caddyfile <<'CADDYFILE'
@@ -33,6 +34,8 @@ docker run --detach --name app --network web --restart unless-stopped \
   --publish 127.0.0.1:8080:8080 \
   --read-only --cap-drop ALL --security-opt no-new-privileges \
   --env APP_ENV=production \
+  --env DATABASE_PATH=/data/app.db \
+  --volume /var/lib/app-data:/data \
   --log-driver awslogs --log-opt awslogs-region="${region}" \
   --log-opt awslogs-group="${log_group}" --log-opt awslogs-stream=app \
   "$${image}"

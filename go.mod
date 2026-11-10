@@ -2,7 +2,10 @@ module github.com/gabrielg2020/mock-cpms-webhook-manager
 
 go 1.26.10
 
-require github.com/go-chi/chi/v5 v5.5.0
+require (
+	github.com/go-chi/chi/v5 v5.5.0
+	modernc.org/sqlite v1.62.0
+)
 
 require (
 	github.com/dustin/go-humanize v1.1.0 // indirect
@@ -14,5 +17,4 @@ require (
 	modernc.org/libc v1.80.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
-	modernc.org/sqlite v1.62.0 // indirect
 )

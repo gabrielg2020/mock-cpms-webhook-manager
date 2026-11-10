@@ -155,7 +155,8 @@ jobs:
       - name: Smoke test the container
         run: |
           docker run --detach --name smoke --publish 8080:8080 \
-            --read-only --cap-drop ALL --security-opt no-new-privileges "$IMAGE"
+            --read-only --tmpfs /data --env DATABASE_PATH=/data/app.db \
+            --cap-drop ALL --security-opt no-new-privileges "$IMAGE"
 
           health_status=""
           for attempt in $(seq 1 10); do
