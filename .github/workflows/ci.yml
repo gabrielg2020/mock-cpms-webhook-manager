@@ -117,6 +117,9 @@ jobs:
       - name: Run actionlint
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 
+      - name: Check workflow scripts with ShellCheck
+        run: shellcheck .github/scripts/*.sh
+
   container:
     name: Container
     runs-on: ubuntu-latest
