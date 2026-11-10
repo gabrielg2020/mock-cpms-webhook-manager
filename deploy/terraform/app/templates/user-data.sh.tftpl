@@ -27,7 +27,8 @@ image="${repository_url}:$${tag}"
 aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${registry}"
 docker pull "$${image}"
 
-docker rm --force app > /dev/null 2>&1 || true
+docker stop --time 10 app > /dev/null 2>&1 || true
+docker rm app > /dev/null 2>&1 || true
 docker run --detach --name app --network web --restart unless-stopped \
   --publish 127.0.0.1:8080:8080 \
   --read-only --cap-drop ALL --security-opt no-new-privileges \

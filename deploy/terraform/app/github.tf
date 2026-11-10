@@ -3,7 +3,7 @@ resource "aws_iam_openid_connect_provider" "github" {
   client_id_list = ["sts.amazonaws.com"]
 }
 
-data "aws_iam_policy_document" "github_publish_trust" {
+data "aws_iam_policy_document" "github_production_trust" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
@@ -29,7 +29,7 @@ data "aws_iam_policy_document" "github_publish_trust" {
 resource "aws_iam_role" "github_publish" {
   name                 = "${local.name}-github-publish"
   description          = "Assumed by GitHub Actions in the production environment to push images to ECR"
-  assume_role_policy   = data.aws_iam_policy_document.github_publish_trust.json
+  assume_role_policy   = data.aws_iam_policy_document.github_production_trust.json
   max_session_duration = 3600
 }
 
