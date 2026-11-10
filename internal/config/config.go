@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	Environment string
-	ListenAddr  string
+	Environment  string
+	ListenAddr   string
+	DatabasePath string
 }
 
 var validEnvironments = map[string]bool{
@@ -18,8 +19,9 @@ var validEnvironments = map[string]bool{
 
 func Load() (Config, error) {
 	cfg := Config{
-		Environment: envOrDefault("APP_ENV", "development"),
-		ListenAddr:  envOrDefault("LISTEN_ADDR", ":8080"),
+		Environment:  envOrDefault("APP_ENV", "development"),
+		ListenAddr:   envOrDefault("LISTEN_ADDR", ":8080"),
+		DatabasePath: envOrDefault("DATABASE_PATH", "data/app.db"),
 	}
 
 	var problems []string

@@ -14,12 +14,12 @@ func TestLoad(t *testing.T) {
 		{
 			name: "uses defaults when nothing is set",
 			env:  map[string]string{},
-			want: Config{Environment: "development", ListenAddr: ":8080"},
+			want: Config{Environment: "development", ListenAddr: ":8080", DatabasePath: "data/app.db"},
 		},
 		{
 			name: "reads values from the environment",
-			env:  map[string]string{"APP_ENV": "production", "LISTEN_ADDR": ":9000"},
-			want: Config{Environment: "production", ListenAddr: ":9000"},
+			env:  map[string]string{"APP_ENV": "production", "LISTEN_ADDR": ":9000", "DATABASE_PATH": "/data/app.db"},
+			want: Config{Environment: "production", ListenAddr: ":9000", DatabasePath: "/data/app.db"},
 		},
 		{
 			name:    "rejects an unknown environment",
@@ -32,6 +32,7 @@ func TestLoad(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Setenv("APP_ENV", "")
 			t.Setenv("LISTEN_ADDR", "")
+			t.Setenv("DATABASE_PATH", "")
 			for key, value := range testCase.env {
 				t.Setenv(key, value)
 			}
