@@ -2,7 +2,10 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -95,5 +98,96 @@ func TestRequestsAreLogged(t *testing.T) {
 	}
 	if strings.Contains(logs.String(), "secret") {
 		t.Error("the query string reached the logs")
+	}
+}
+
+func TestPanicBecomesTheServerErrorPage(t *testing.T) {
+	app, logs := newLoggedApplication(t, func(context.Context) error { panic("boom: database password") })
+
+	response := get(t, app.Routes(), "/healthz")
+	body := response.Body.String()
+	requestID := response.Header().Get("X-Request-Id")
+
+	if response.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", response.Code)
+	}
+	if got := response.Header().Get("Content-Security-Policy"); got != contentSecurityPolicy {
+		t.Errorf("Content-Security-Policy = %q, want it on the error page too", got)
+	}
+	for _, want := range []string{"Sorry, there is a problem with the service", requestID} {
+		if !strings.Contains(body, want) {
+			t.Errorf("page does not contain %q", want)
+		}
+	}
+	for _, detail := range []string{"boom", "password", "goroutine", "middleware.go"} {
+		if strings.Contains(body, detail) {
+			t.Errorf("page reveals %q", detail)
+		}
+	}
+
+	panics := logLines(t, logs, "panic recovered")
+	if len(panics) != 1 {
+		t.Fatalf("got %d panic lines, want 1", len(panics))
+	}
+	if panics[0]["level"] != "ERROR" || panics[0]["request_id"] != requestID || panics[0]["panic"] != "boom: database password" {
+		t.Errorf("panic line = %v", panics[0])
+	}
+	if stack, _ := panics[0]["stack"].(string); !strings.Contains(stack, "goroutine") {
+		t.Errorf("stack = %q, want a stack trace", stack)
+	}
+
+	requests := logLines(t, logs, "request completed")
+	if len(requests) != 1 || requests[0]["status"] != float64(http.StatusInternalServerError) || requests[0]["request_id"] != requestID {
+		t.Errorf("request lines = %v, want one with status 500 and the same request ID", requests)
+	}
+}
+
+func TestAbortPanicIsPassedOn(t *testing.T) {
+	app := newTestApplication(t, func(context.Context) error { panic(http.ErrAbortHandler) })
+
+	defer func() {
+		recovered, _ := recover().(error)
+		if !errors.Is(recovered, http.ErrAbortHandler) {
+			t.Errorf("recovered %v, want http.ErrAbortHandler to be passed on", recovered)
+		}
+	}()
+	get(t, app.Routes(), "/healthz")
+}
+
+func TestServerErrorIsLoggedWithItsCause(t *testing.T) {
+	app, logs := newLoggedApplication(t, healthy)
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/webhooks", nil)
+
+	app.serverError(recorder, request, errors.New("database is closed"))
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", recorder.Code)
+	}
+	if strings.Contains(recorder.Body.String(), "database is closed") {
+		t.Error("page reveals the cause of the error")
+	}
+	lines := logLines(t, logs, "request failed")
+	if len(lines) != 1 || lines[0]["level"] != "ERROR" || lines[0]["error"] != "database is closed" || lines[0]["path"] != "/webhooks" {
+		t.Errorf("error lines = %v, want one with the cause and the path", lines)
+	}
+}
+
+func TestServerErrorFallsBackToPlainText(t *testing.T) {
+	app, logs := newLoggedApplication(t, healthy)
+	app.templates = map[string]*template.Template{}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
+
+	app.serverError(recorder, request, errors.New("database is closed"))
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", recorder.Code)
+	}
+	if body := recorder.Body.String(); !strings.Contains(body, "Sorry, there is a problem with the service") || strings.Contains(body, "server-error") {
+		t.Errorf("body = %q, want the plain message and no internal detail", body)
+	}
+	if len(logLines(t, logs, "failed to render the server error page")) != 1 {
+		t.Error("the failure to render the error page was not logged")
 	}
 }

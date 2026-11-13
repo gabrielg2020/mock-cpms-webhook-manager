@@ -3,7 +3,10 @@ package web
 import (
 	"context"
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -49,5 +52,33 @@ func (app *Application) logRequests(next http.Handler) http.Handler {
 		}()
 
 		next.ServeHTTP(response, r)
+	})
+}
+
+// recoverPanics turns a panic in a handler into a logged error and the 500 page.
+// Without it Go closes the connection, and the user gets the proxy's error with no reference.
+func (app *Application) recoverPanics(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			recovered := recover()
+			if recovered == nil {
+				return
+			}
+			// net/http panics with this value on purpose to abort a response, so it is passed on.
+			if err, ok := recovered.(error); ok && errors.Is(err, http.ErrAbortHandler) {
+				panic(recovered)
+			}
+
+			app.logger.Error("panic recovered",
+				"request_id", requestIDFrom(r.Context()),
+				"panic", fmt.Sprint(recovered),
+				"stack", string(debug.Stack()),
+				"method", r.Method,
+				"path", r.URL.Path,
+			)
+			app.sendServerErrorPage(w, r)
+		}()
+
+		next.ServeHTTP(w, r)
 	})
 }

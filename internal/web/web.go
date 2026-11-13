@@ -57,6 +57,7 @@ func (app *Application) Routes() http.Handler {
 	router.Use(requestID)
 	router.Use(securityHeaders)
 	router.Use(app.logRequests)
+	router.Use(app.recoverPanics)
 	router.NotFound(app.notFound)
 
 	router.Get("/", app.home)
