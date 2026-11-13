@@ -1,0 +1,17 @@
+{{ define "title" }}Manage your team's CPMS webhooks{{ end }}
+
+{{ define "content" }}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-xl">Manage your team's CPMS webhooks</h1>
+    <p class="govuk-body-l">Use this service to choose which payment events CPMS sends to your team, and where it sends them.</p>
+    <p class="govuk-body">You can:</p>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>subscribe to events, such as a completed payment or a requested refund</li>
+      <li>set a different destination URL for each environment</li>
+      <li>send a test event to check your endpoint receives it</li>
+    </ul>
+    <div class="govuk-inset-text">Signing in is not available yet. This service is still being built.</div>
+  </div>
+</div>
+{{ end }}

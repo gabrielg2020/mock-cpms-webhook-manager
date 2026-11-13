@@ -1,0 +1,14 @@
+{
+  "name": "mock-cpms-webhook-manager",
+  "private": true,
+  "description": "Build-time tooling for the stylesheet. Nothing here is shipped in the container image.",
+  "scripts": {
+    "build": "npm run build:css && npm run build:js",
+    "build:css": "sass --pkg-importer=node --style=compressed --no-source-map internal/web/scss/app.scss internal/web/static/app.css",
+    "build:js": "cp node_modules/govuk-frontend/dist/govuk/govuk-frontend.min.js internal/web/static/govuk-frontend.min.js"
+  },
+  "devDependencies": {
+    "govuk-frontend": "6.6.0",
+    "sass": "1.108.1"
+  }
+}

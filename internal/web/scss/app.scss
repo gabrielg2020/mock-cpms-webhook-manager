@@ -1,0 +1,5 @@
+// This service is not on GOV.UK, so it uses Arial instead of GDS Transport.
+// With no GDS Transport in the font list, GOV.UK Frontend leaves out its @font-face rules.
+@use "pkg:govuk-frontend" with (
+  $govuk-font-family: (arial, sans-serif)
+);

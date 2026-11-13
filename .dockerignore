@@ -2,3 +2,4 @@
 .github
 deploy
 *.md
+node_modules

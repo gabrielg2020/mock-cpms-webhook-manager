@@ -268,10 +268,37 @@ jobs:
             --env DOMAIN=uni.gabrielg.tech --env ACME_EMAIL=dev@gabrielg.tech \
             "$CADDY_IMAGE" caddy validate --config /work/Caddyfile --adapter caddyfile
 
+  assets:
+    name: Assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install the pinned build tools
+        run: npm ci
+
+      - name: Rebuild the stylesheet and script
+        run: npm run build
+
+      - name: Check the committed files match the build
+        run: |
+          changes=$(git status --porcelain -- internal/web/static)
+          if [ -n "$changes" ]; then
+            echo "$changes"
+            echo "::error::internal/web/static does not match its source. Run 'npm run build' and commit the result."
+            exit 1
+          fi
+
   report:
     name: Report
     if: always() && github.event_name == 'pull_request'
-    needs: [lint, test, vulncheck, workflow-lint, container, terraform, caddy]
+    needs: [lint, test, vulncheck, workflow-lint, container, terraform, caddy, assets]
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -292,6 +319,7 @@ jobs:
           CONTAINER_RESULT: ${{ needs.container.result }}
           TERRAFORM_RESULT: ${{ needs.terraform.result }}
           CADDY_RESULT: ${{ needs.caddy.result }}
+          ASSETS_RESULT: ${{ needs.assets.result }}
         run: |
           icon() {
             case "$1" in
@@ -314,6 +342,7 @@ jobs:
           | Container | $(icon "$CONTAINER_RESULT") ${CONTAINER_RESULT} | Build (amd64 + arm64), smoke test, Trivy |
           | Terraform | $(icon "$TERRAFORM_RESULT") ${TERRAFORM_RESULT} | fmt, validate, Trivy config |
           | Caddy | $(icon "$CADDY_RESULT") ${CADDY_RESULT} | fmt, validate |
+          | Assets | $(icon "$ASSETS_RESULT") ${ASSETS_RESULT} | Stylesheet and script match their source |
 
           [View the full run](${RUN_URL})
           EOF

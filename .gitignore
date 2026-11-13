@@ -2,3 +2,4 @@
 *.tfstate
 *.tfstate.*
 /data/
+node_modules/
