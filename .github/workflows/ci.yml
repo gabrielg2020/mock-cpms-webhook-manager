@@ -342,7 +342,7 @@ jobs:
           | Container | $(icon "$CONTAINER_RESULT") ${CONTAINER_RESULT} | Build (amd64 + arm64), smoke test, Trivy |
           | Terraform | $(icon "$TERRAFORM_RESULT") ${TERRAFORM_RESULT} | fmt, validate, Trivy config |
           | Caddy | $(icon "$CADDY_RESULT") ${CADDY_RESULT} | fmt, validate |
-          | Assets | $(icon "$ASSETS_RESULT" ${ASSETS_RESULT}) | Stylesheet and script match their source |
+          | Assets | $(icon "$ASSETS_RESULT") ${ASSETS_RESULT} | Stylesheet and script match their source |
 
           [View the full run](${RUN_URL})
           EOF
