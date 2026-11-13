@@ -11,7 +11,7 @@ import (
 
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/config"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/database"
-	"github.com/go-chi/chi/v5"
+	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/web"
 )
 
 func main() {
@@ -39,19 +39,15 @@ func main() {
 	}
 	logger.Info("database ready", "path", cfg.DatabasePath)
 
-	router := chi.NewRouter()
-	router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		if err := db.PingContext(r.Context()); err != nil {
-			logger.Error("health check failed", "error", err)
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
-	})
+	app, err := web.New(logger, db.PingContext)
+	if err != nil {
+		logger.Error("failed to set up the web application", "error", err)
+		os.Exit(1)
+	}
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           router,
+		Handler:           app.Routes(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      10 * time.Second,
