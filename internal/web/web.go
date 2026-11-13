@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 //go:embed static templates
@@ -58,6 +59,7 @@ func (app *Application) Routes() http.Handler {
 	router.Use(securityHeaders)
 	router.Use(app.logRequests)
 	router.Use(app.recoverPanics)
+	router.Use(middleware.GetHead)
 	router.NotFound(app.notFound)
 
 	router.Get("/", app.home)

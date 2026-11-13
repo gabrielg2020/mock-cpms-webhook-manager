@@ -191,3 +191,26 @@ func TestServerErrorFallsBackToPlainText(t *testing.T) {
 		t.Error("the failure to render the error page was not logged")
 	}
 }
+
+func TestHeadRequestsAreAnswered(t *testing.T) {
+	routes := newTestApplication(t, healthy).Routes()
+
+	testCases := []struct {
+		target     string
+		wantStatus int
+	}{
+		{target: "/", wantStatus: http.StatusOK},
+		{target: "/healthz", wantStatus: http.StatusNoContent},
+		{target: "/no-such-page", wantStatus: http.StatusNotFound},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.target, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			routes.ServeHTTP(recorder, httptest.NewRequestWithContext(t.Context(), http.MethodHead, testCase.target, nil))
+			if recorder.Code != testCase.wantStatus {
+				t.Errorf("status = %d, want %d", recorder.Code, testCase.wantStatus)
+			}
+		})
+	}
+}
