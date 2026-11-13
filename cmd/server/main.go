@@ -11,8 +11,8 @@ import (
 
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/config"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/database"
-	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/web"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/seed"
+	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/web"
 )
 
 func main() {
