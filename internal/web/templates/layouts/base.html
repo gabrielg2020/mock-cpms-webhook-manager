@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" class="govuk-template">
+  <head>
+    <meta charset="utf-8">
+    <title>{{ template "title" . }} - Mock CPMS Webhook Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0c0c">
+    <link rel="icon" href="{{ .StaticPath }}/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ .StaticPath }}/app.css">
+  </head>
+  <body class="govuk-template__body">
+    <script src="{{ .StaticPath }}/js-enabled.js"></script>
+    <a href="#main-content" class="govuk-skip-link" data-module="govuk-skip-link">Skip to main content</a>
+
+    <header class="govuk-template__header">
+      <div class="govuk-generic-header">
+        <div class="govuk-generic-header__container govuk-width-container">
+          <div class="govuk-generic-header__logo">
+            <a href="/" class="govuk-generic-header__homepage-link">Mock CPMS Webhook Manager</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="govuk-width-container">
+      <div class="govuk-phase-banner">
+        <p class="govuk-phase-banner__content">
+          <strong class="govuk-tag govuk-phase-banner__content__tag">Coursework</strong>
+          <span class="govuk-phase-banner__text">This is a university coursework demo, not a government service. All data is fake.</span>
+        </p>
+      </div>
+
+      <main class="govuk-main-wrapper" id="main-content">
+        {{ template "content" . }}
+      </main>
+    </div>
+
+    <footer class="govuk-template__footer">
+      <div class="govuk-footer">
+        <div class="govuk-width-container">
+          <div class="govuk-footer__meta">
+            <div class="govuk-footer__meta-item govuk-footer__meta-item--grow">
+              <h2 class="govuk-visually-hidden">About this site</h2>
+              <ul class="govuk-footer__inline-list">
+                <li class="govuk-footer__inline-list-item">
+                  <a class="govuk-footer__link" href="https://github.com/gabrielg2020/mock-cpms-webhook-manager">Source code</a>
+                </li>
+              </ul>
+              <div class="govuk-footer__meta-custom">
+                Built for the Software Engineering and DevOps module of a BSc Digital and Technology Solutions degree apprenticeship. Styled with the GOV.UK Design System, without the crown or the GDS Transport typeface.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="{{ .StaticPath }}/app.js"></script>
+  </body>
+</html>
