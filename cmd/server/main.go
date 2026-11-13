@@ -12,6 +12,7 @@ import (
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/config"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/database"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/web"
+	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/seed"
 )
 
 func main() {
@@ -38,6 +39,15 @@ func main() {
 		os.Exit(1)
 	}
 	logger.Info("database ready", "path", cfg.DatabasePath)
+
+	if cfg.SeedDemoData {
+		passwords := seed.Passwords{Admin: cfg.SeedAdminPassword, Member: cfg.SeedMemberPassword}
+		if err := seed.DemoData(ctx, db, passwords); err != nil {
+			logger.Error("failed to seed demo data", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("demo data ready")
+	}
 
 	app, err := web.New(logger, db.PingContext)
 	if err != nil {
