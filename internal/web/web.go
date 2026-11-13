@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 //go:embed static templates
@@ -53,7 +54,12 @@ func New(logger *slog.Logger, healthCheck HealthCheck) (*Application, error) {
 
 func (app *Application) Routes() http.Handler {
 	router := chi.NewRouter()
+	// The first one listed is the outermost: it runs first and wraps all the others.
+	router.Use(requestID)
 	router.Use(securityHeaders)
+	router.Use(app.logRequests)
+	router.Use(app.recoverPanics)
+	router.Use(middleware.GetHead)
 	router.NotFound(app.notFound)
 
 	router.Get("/", app.home)
