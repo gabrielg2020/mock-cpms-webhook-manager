@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/netip"
 	"strings"
-
 )
 
 const clientIPKey contextKey = "clientIP"
