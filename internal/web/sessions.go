@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/store"
+	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/authz"
 )
 
 const (
@@ -41,9 +41,20 @@ func newSessionManager(sessionStore scs.Store, secure bool, onError func(http.Re
 	return sessions
 }
 
+type currentUser struct {
+	ID          int64
+	DisplayName string
+	TeamName    string
+	Subject     authz.Subject
+}
+
+func (user currentUser) IsAdmin() bool {
+	return user.Subject.IsAdmin()
+}
+
 // userFrom returns the signed-in user, or false if nobody is signed in.
-func userFrom(ctx context.Context) (store.GetSignedInUserRow, bool) {
-	user, ok := ctx.Value(userKey).(store.GetSignedInUserRow)
+func userFrom(ctx context.Context) (currentUser, bool) {
+	user, ok := ctx.Value(userKey).(currentUser)
 	return user, ok
 }
 
@@ -58,7 +69,7 @@ func (app *Application) loadUser(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := app.queries.GetSignedInUser(r.Context(), userID)
+		row, err := app.queries.GetSignedInUser(r.Context(), userID)
 		if errors.Is(err, sql.ErrNoRows) {
 			if err := app.sessions.Destroy(r.Context()); err != nil {
 				app.serverError(w, r, err)
@@ -74,6 +85,13 @@ func (app *Application) loadUser(next http.Handler) http.Handler {
 
 		if entry, ok := r.Context().Value(requestLogKey).(*requestLog); ok {
 			entry.userID = userID
+		}
+
+		user := currentUser{
+			ID:          row.ID,
+			DisplayName: row.DisplayName,
+			TeamName:    row.TeamName.String,
+			Subject:     authz.Subject{UserID: row.ID, Role: authz.Role(row.Role), TeamID: row.TeamID.Int64},
 		}
 
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userKey, user)))

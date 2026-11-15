@@ -7,14 +7,16 @@ WHERE
   email = ?;
 -- name: GetSignedInUser :one
 SELECT
-  id,
-  display_name,
-  role,
-  team_id
+  users.id,
+  users.display_name,
+  users.role,
+  users.team_id,
+  teams.name AS team_name
 FROM
   users
+  LEFT JOIN teams ON teams.id = users.team_id
 WHERE
-  id = ?;
+  users.id = ?;
 -- name: CountFailedSignIn :one
 UPDATE users
 SET
