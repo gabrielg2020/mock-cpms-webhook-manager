@@ -28,6 +28,16 @@ image="${repository_url}:$${tag}"
 aws ecr get-login-password --region "${region}" | docker login --username AWS --password-stdin "${registry}"
 docker pull "$${image}"
 
+# The secrets are read on every deploy and exported, so that docker run can pass them by name.
+# Their values are never in a command line, in this script's output or in the repository.
+read_secret() {
+  aws ssm get-parameter --region "${region}" --with-decryption --name "$1" --query Parameter.Value --output text
+}
+SEED_ADMIN_PASSWORD=$(read_secret "${seed_admin_password_parameter}")
+SEED_MEMBER_PASSWORD=$(read_secret "${seed_member_password_parameter}")
+SECRET_ENCRYPTION_KEY=$(read_secret "${secret_encryption_key_parameter}")
+export SEED_ADMIN_PASSWORD SEED_MEMBER_PASSWORD SECRET_ENCRYPTION_KEY
+
 docker stop --time 10 app > /dev/null 2>&1 || true
 docker rm app > /dev/null 2>&1 || true
 docker run --detach --name app --network web --restart unless-stopped \
@@ -35,6 +45,8 @@ docker run --detach --name app --network web --restart unless-stopped \
   --read-only --cap-drop ALL --security-opt no-new-privileges \
   --env APP_ENV=production \
   --env DATABASE_PATH=/data/app.db \
+  --env SEED_DEMO_DATA=true \
+  --env SEED_ADMIN_PASSWORD --env SEED_MEMBER_PASSWORD --env SECRET_ENCRYPTION_KEY \
   --volume /var/lib/app-data:/data \
   --log-driver awslogs --log-opt awslogs-region="${region}" \
   --log-opt awslogs-group="${log_group}" --log-opt awslogs-stream=app \
