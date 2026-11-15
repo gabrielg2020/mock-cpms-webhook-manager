@@ -32,3 +32,11 @@ output "deploy_document_name" {
   description = "SSM document the deploy job runs on the server"
   value       = aws_ssm_document.deploy_app.name
 }
+
+output "demo_password_parameters" {
+  description = "Read a demo password: aws ssm get-parameter --with-decryption --query Parameter.Value --output text --name <name>"
+  value = [
+    aws_ssm_parameter.seed_admin_password.name,
+    aws_ssm_parameter.seed_member_password.name,
+  ]
+}

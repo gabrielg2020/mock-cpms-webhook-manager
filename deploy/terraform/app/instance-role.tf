@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "ec2_trust" {
 
 resource "aws_iam_role" "app_instance" {
   name               = "${local.name}-instance"
-  description        = "Lets the app server use SSM, pull its image, read its image tag and write logs"
+  description        = "Lets the app server use SSM, pull its image, read its image tag and secrets, and write logs"
   assume_role_policy = data.aws_iam_policy_document.ec2_trust.json
 }
 
