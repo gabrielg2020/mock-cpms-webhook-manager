@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/auth"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/validation"
@@ -47,6 +49,7 @@ func (app *Application) signIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID, err := app.authenticator.Authenticate(r.Context(), page.Email, password)
+	var locked *auth.LockedError
 	switch {
 	case errors.Is(err, auth.ErrInvalidCredentials):
 		app.logger.Warn("sign-in failed", "request_id", requestIDFrom(r.Context()))
@@ -58,6 +61,15 @@ func (app *Application) signIn(w http.ResponseWriter, r *http.Request) {
 		app.problem(w, r, http.StatusServiceUnavailable, "Sorry, the service is busy", "Try again in a few moments.")
 		return
 	case errors.Is(err, context.Canceled):
+		return
+	case errors.As(err, &locked):
+		app.logger.Warn("sign-in refused: account locked",
+			"request_id", requestIDFrom(r.Context()),
+			"user_id", locked.UserID,
+			"locked_until", locked.Until.Format(time.RFC3339),
+		)
+		page.Errors.Add("email", "Enter a correct email address and password")
+		app.render(w, r, http.StatusUnprocessableEntity, "sign-in", page)
 		return
 	case err != nil:
 		app.serverError(w, r, err)
@@ -98,4 +110,16 @@ func (app *Application) signOut(w http.ResponseWriter, r *http.Request) {
 func (app *Application) crossOriginDenied(w http.ResponseWriter, r *http.Request) {
 	app.logger.Warn("cross-origin request refused", "request_id", requestIDFrom(r.Context()), "method", r.Method, "path", r.URL.Path)
 	app.problem(w, r, http.StatusForbidden, "Sorry, there is a problem", "Your request did not come from this site, so it was not carried out. Go back to the page and try again.")
+}
+
+func (app *Application) limitSignIns(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		allowed, retryAfter := app.signInLimiter.Allow(limiterKey(clientIPFrom(r.Context())))
+		if !allowed {
+			w.Header().Set("Retry-After", strconv.Itoa(int(retryAfter.Seconds())+1))
+			app.problem(w, r, http.StatusTooManyRequests, "Sorry, there have been too many sign-in attempts", "Wait a minute, then try again.")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

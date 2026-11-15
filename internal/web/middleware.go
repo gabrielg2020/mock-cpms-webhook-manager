@@ -14,7 +14,14 @@ import (
 
 type contextKey string
 
-const requestIDKey contextKey = "requestID"
+const (
+	requestIDKey  contextKey = "requestID"
+	requestLogKey contextKey = "requestLog"
+)
+
+type requestLog struct {
+	userID int64
+}
 
 // requestIDFrom returns the ID given to this request, or "" if there is none.
 func requestIDFrom(ctx context.Context) string {
@@ -38,20 +45,26 @@ func (app *Application) logRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		response := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+		entry := &requestLog{}
 
 		// Deferred, so the line is still written if the handler panics.
 		defer func() {
-			app.logger.Info("request completed",
+			attributes := []any{
 				"request_id", requestIDFrom(r.Context()),
+				"client_ip", clientIPFrom(r.Context()).String(),
 				"method", r.Method,
 				"path", r.URL.Path,
 				"status", response.Status(),
 				"bytes", response.BytesWritten(),
-				"duration_ms", float64(time.Since(start).Microseconds())/1000,
-			)
+				"duration_ms", float64(time.Since(start).Microseconds()) / 1000,
+			}
+			if entry.userID != 0 {
+				attributes = append(attributes, "user_id", entry.userID)
+			}
+			app.logger.Info("request completed", attributes...)
 		}()
 
-		next.ServeHTTP(response, r)
+		next.ServeHTTP(response, r.WithContext(context.WithValue(r.Context(), requestLogKey, entry)))
 	})
 }
 

@@ -72,6 +72,10 @@ func (app *Application) loadUser(next http.Handler) http.Handler {
 			return
 		}
 
+		if entry, ok := r.Context().Value(requestLogKey).(*requestLog); ok {
+			entry.userID = userID
+		}
+
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userKey, user)))
 	})
 }

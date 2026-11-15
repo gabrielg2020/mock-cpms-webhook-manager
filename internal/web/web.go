@@ -10,9 +10,11 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/auth"
+	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/ratelimit"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/session"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/store"
 	"github.com/go-chi/chi/v5"
@@ -21,6 +23,8 @@ import (
 
 //go:embed static templates
 var embedded embed.FS
+
+const signInAttemptsPerMinute = 10
 
 // HealthCheck reports whether the app's dependencies are working.
 type HealthCheck func(ctx context.Context) error
@@ -43,6 +47,7 @@ type Application struct {
 	sessionStore  *session.Store
 	sessions      *scs.SessionManager
 	crossOrigin   *http.CrossOriginProtection
+	signInLimiter *ratelimit.Limiter
 }
 
 func New(options Options) (*Application, error) {
@@ -71,6 +76,7 @@ func New(options Options) (*Application, error) {
 		authenticator: auth.NewAuthenticator(queries),
 		sessionStore:  session.NewStore(options.Database),
 		crossOrigin:   http.NewCrossOriginProtection(),
+		signInLimiter: ratelimit.New(signInAttemptsPerMinute, time.Minute),
 	}
 	app.sessions = newSessionManager(app.sessionStore, options.SecureCookies, app.serverError)
 	app.crossOrigin.SetDenyHandler(http.HandlerFunc(app.crossOriginDenied))
@@ -81,6 +87,7 @@ func (app *Application) Routes() http.Handler {
 	router := chi.NewRouter()
 	// The first one listed is the outermost: it runs first and wraps all the others.
 	router.Use(requestID)
+	router.Use(rememberClientIP)
 	router.Use(securityHeaders)
 	router.Use(app.logRequests)
 	router.Use(app.recoverPanics)
@@ -98,7 +105,7 @@ func (app *Application) Routes() http.Handler {
 	router.Group(func(public chi.Router) {
 		public.Use(pages...)
 		public.Get("/sign-in", app.signInForm)
-		public.Post("/sign-in", app.signIn)
+		public.With(app.limitSignIns).Post("/sign-in", app.signIn)
 
 		// Every page registered in this group needs a signed-in user.
 		public.Group(func(private chi.Router) {
