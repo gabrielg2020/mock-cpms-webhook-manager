@@ -43,14 +43,16 @@ func (q *Queries) CountFailedSignIn(ctx context.Context, id int64) (int64, error
 
 const getSignedInUser = `-- name: GetSignedInUser :one
 SELECT
-  id,
-  display_name,
-  role,
-  team_id
+  users.id,
+  users.display_name,
+  users.role,
+  users.team_id,
+  teams.name AS team_name
 FROM
   users
+  LEFT JOIN teams ON teams.id = users.team_id
 WHERE
-  id = ?
+  users.id = ?
 `
 
 type GetSignedInUserRow struct {
@@ -58,6 +60,7 @@ type GetSignedInUserRow struct {
 	DisplayName string
 	Role        string
 	TeamID      sql.NullInt64
+	TeamName    sql.NullString
 }
 
 func (q *Queries) GetSignedInUser(ctx context.Context, id int64) (GetSignedInUserRow, error) {
@@ -68,6 +71,7 @@ func (q *Queries) GetSignedInUser(ctx context.Context, id int64) (GetSignedInUse
 		&i.DisplayName,
 		&i.Role,
 		&i.TeamID,
+		&i.TeamName,
 	)
 	return i, err
 }
