@@ -7,7 +7,31 @@ package store
 
 import (
 	"context"
+	"database/sql"
 )
+
+const getSignedInUser = `-- name: GetSignedInUser :one
+SELECT id, display_name, role, team_id FROM users WHERE id = ?
+`
+
+type GetSignedInUserRow struct {
+	ID          int64
+	DisplayName string
+	Role        string
+	TeamID      sql.NullInt64
+}
+
+func (q *Queries) GetSignedInUser(ctx context.Context, id int64) (GetSignedInUserRow, error) {
+	row := q.db.QueryRowContext(ctx, getSignedInUser, id)
+	var i GetSignedInUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.Role,
+		&i.TeamID,
+	)
+	return i, err
+}
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT
