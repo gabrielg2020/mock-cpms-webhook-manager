@@ -11,7 +11,15 @@ import (
 )
 
 const getSignedInUser = `-- name: GetSignedInUser :one
-SELECT id, display_name, role, team_id FROM users WHERE id = ?
+SELECT
+  id,
+  display_name,
+  role,
+  team_id
+FROM
+  users
+WHERE
+  id = ?
 `
 
 type GetSignedInUserRow struct {

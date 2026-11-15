@@ -10,7 +10,9 @@ import (
 )
 
 const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
-DELETE FROM sessions WHERE expiry <= ?
+DELETE FROM sessions
+WHERE
+  expiry <= ?
 `
 
 func (q *Queries) DeleteExpiredSessions(ctx context.Context, expiry float64) error {
@@ -19,7 +21,9 @@ func (q *Queries) DeleteExpiredSessions(ctx context.Context, expiry float64) err
 }
 
 const deleteSession = `-- name: DeleteSession :exec
-DELETE FROM sessions WHERE token = ?
+DELETE FROM sessions
+WHERE
+  token = ?
 `
 
 func (q *Queries) DeleteSession(ctx context.Context, token string) error {
@@ -28,7 +32,13 @@ func (q *Queries) DeleteSession(ctx context.Context, token string) error {
 }
 
 const getSession = `-- name: GetSession :one
-SELECT data FROM sessions WHERE token = ? AND expiry > ?
+SELECT
+  data
+FROM
+  sessions
+WHERE
+  token = ?
+  AND expiry > ?
 `
 
 type GetSessionParams struct {
@@ -44,8 +54,19 @@ func (q *Queries) GetSession(ctx context.Context, arg GetSessionParams) ([]byte,
 }
 
 const saveSession = `-- name: SaveSession :exec
-INSERT INTO sessions (token, data, expiry) VALUES (?, ?, ?)
-ON CONFLICT (token) DO UPDATE SET data = excluded.data, expiry = excluded.expiry
+INSERT INTO sessions(
+  token,
+  data,
+  expiry
+)
+VALUES(
+  ?,
+  ?,
+  ?
+)
+ON CONFLICT (token) DO UPDATE 
+SET data = excluded.data,
+expiry = excluded.expiry
 `
 
 type SaveSessionParams struct {
