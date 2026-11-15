@@ -157,6 +157,7 @@ jobs:
         run: |
           docker run --detach --name smoke --publish 8080:8080 \
             --read-only --tmpfs /data --env DATABASE_PATH=/data/app.db \
+            --env SECRET_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
             --cap-drop ALL --security-opt no-new-privileges "$IMAGE"
 
           health_status=""

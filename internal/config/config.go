@@ -1,22 +1,26 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/secretbox"
 )
 
 // A seeded password is the only thing between the public site and the demo accounts.
 const minSeedPasswordLength = 12
 
 type Config struct {
-	Environment        string
-	ListenAddr         string
-	DatabasePath       string
-	SeedDemoData       bool
-	SeedAdminPassword  string
-	SeedMemberPassword string
-	SecureCookies      bool
+	Environment         string
+	ListenAddr          string
+	DatabasePath        string
+	SeedDemoData        bool
+	SeedAdminPassword   string
+	SeedMemberPassword  string
+	SecureCookies       bool
+	SecretEncryptionKey []byte
 }
 
 var validEnvironments = map[string]bool{
@@ -65,6 +69,16 @@ func Load() (Config, error) {
 		}
 	default:
 		problems = append(problems, fmt.Sprintf("SECURE_COOKIES must be true or false, got %q", secure))
+	}
+
+	key, err := base64.StdEncoding.DecodeString(os.Getenv("SECRET_ENCRYPTION_KEY"))
+	switch {
+	case err != nil:
+		problems = append(problems, "SECRET_ENCRYPTION_KEY must be base64")
+	case len(key) != secretbox.KeySize:
+		problems = append(problems, fmt.Sprintf("SECRET_ENCRYPTION_KEY must be %d bytes encoded as base64, got %d bytes", secretbox.KeySize, len(key)))
+	default:
+		cfg.SecretEncryptionKey = key
 	}
 
 	if len(problems) > 0 {
