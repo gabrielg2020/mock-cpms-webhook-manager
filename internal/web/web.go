@@ -113,6 +113,10 @@ func (app *Application) Routes() http.Handler {
 			private.Get("/", app.home)
 			private.Get("/sign-out", app.signOutForm)
 			private.Post("/sign-out", app.signOut)
+			private.Route("/admin", func(admin chi.Router) {
+				admin.Use(app.requireAdmin)
+				admin.Get("/", app.adminHome)
+			})
 		})
 	})
 

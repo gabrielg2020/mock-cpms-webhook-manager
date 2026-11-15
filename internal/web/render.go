@@ -8,14 +8,12 @@ import (
 	"net/http"
 	"path"
 	"strings"
-
-	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/store"
 )
 
 // templateData is what every template receives. Page holds the values for one page.
 type templateData struct {
 	StaticPath string
-	User       *store.GetSignedInUserRow
+	User       *currentUser
 	Page       any
 }
 

@@ -3,7 +3,7 @@ package authz
 type Role string
 
 const (
-	RoleAdmin Role = "admin"
+	RoleAdmin  Role = "admin"
 	RoleMember Role = "member"
 )
 
@@ -20,12 +20,12 @@ const (
 
 type Subject struct {
 	UserID int64
-	Role Role
+	Role   Role
 	TeamID int64
 }
 
 type WebhookTarget struct {
-	TeamID int64
+	TeamID       int64
 	IsProduction bool
 }
 

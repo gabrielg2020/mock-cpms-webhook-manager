@@ -30,6 +30,11 @@
                 <li class="govuk-service-navigation__item">
                   <span class="govuk-service-navigation__text">Signed in as {{ .DisplayName }}</span>
                 </li>
+                {{ if .IsAdmin }}
+                <li class="govuk-service-navigation__item">
+                  <a class="govuk-service-navigation__link" href="/admin">Admin</a>
+                </li>
+                {{ end }}
                 <li class="govuk-service-navigation__item">
                   <a class="govuk-service-navigation__link" href="/sign-out">Sign out</a>
                 </li>
