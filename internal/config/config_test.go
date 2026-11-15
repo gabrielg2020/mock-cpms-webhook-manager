@@ -15,12 +15,12 @@ func TestLoad(t *testing.T) {
 		{
 			name: "uses defaults when nothing is set",
 			env:  map[string]string{},
-			want: Config{Environment: "development", ListenAddr: ":8080", DatabasePath: "data/app.db"},
+			want: Config{Environment: "development", ListenAddr: ":8080", DatabasePath: "data/app.db", SecureCookies: true},
 		},
 		{
 			name: "reads values from the environment",
 			env:  map[string]string{"APP_ENV": "production", "LISTEN_ADDR": ":9000", "DATABASE_PATH": "/data/app.db"},
-			want: Config{Environment: "production", ListenAddr: ":9000", DatabasePath: "/data/app.db"},
+			want: Config{Environment: "production", ListenAddr: ":9000", DatabasePath: "/data/app.db", SecureCookies: true},
 		},
 		{
 			name:    "rejects an unknown environment",
@@ -33,12 +33,13 @@ func TestLoad(t *testing.T) {
 			want: Config{
 				Environment: "development", ListenAddr: ":8080", DatabasePath: "data/app.db",
 				SeedDemoData: true, SeedAdminPassword: "admin-password-1", SeedMemberPassword: "member-password-1",
+				SecureCookies: true,
 			},
 		},
 		{
 			name: "does not need seed passwords when seeding is off",
 			env:  map[string]string{"SEED_DEMO_DATA": "false"},
-			want: Config{Environment: "development", ListenAddr: ":8080", DatabasePath: "data/app.db"},
+			want: Config{Environment: "development", ListenAddr: ":8080", DatabasePath: "data/app.db", SecureCookies: true},
 		},
 		{
 			name:    "rejects a seed setting that is not true or false",
@@ -55,6 +56,21 @@ func TestLoad(t *testing.T) {
 			env:     map[string]string{"SEED_DEMO_DATA": "true", "SEED_ADMIN_PASSWORD": "short", "SEED_MEMBER_PASSWORD": "member-password-1"},
 			wantErr: true,
 		},
+		{
+			name: "lets development turn secure cookies off",
+			env:  map[string]string{"SECURE_COOKIES": "false"},
+			want: Config{Environment: "development", ListenAddr: ":8080", DatabasePath: "data/app.db"},
+		},
+		{
+			name:    "refuses to turn secure cookies off in production",
+			env:     map[string]string{"APP_ENV": "production", "SECURE_COOKIES": "false"},
+			wantErr: true,
+		},
+		{
+			name:    "rejects a secure cookies setting that is not true or false",
+			env:     map[string]string{"SECURE_COOKIES": "no"},
+			wantErr: true,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -65,6 +81,7 @@ func TestLoad(t *testing.T) {
 			t.Setenv("SEED_DEMO_DATA", "")
 			t.Setenv("SEED_ADMIN_PASSWORD", "")
 			t.Setenv("SEED_MEMBER_PASSWORD", "")
+			t.Setenv("SECURE_COOKIES", "")
 			for key, value := range testCase.env {
 				t.Setenv(key, value)
 			}

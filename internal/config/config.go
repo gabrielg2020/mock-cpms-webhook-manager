@@ -16,6 +16,7 @@ type Config struct {
 	SeedDemoData       bool
 	SeedAdminPassword  string
 	SeedMemberPassword string
+	SecureCookies      bool
 }
 
 var validEnvironments = map[string]bool{
@@ -52,6 +53,18 @@ func Load() (Config, error) {
 		if len(cfg.SeedMemberPassword) < minSeedPasswordLength {
 			problems = append(problems, fmt.Sprintf("SEED_MEMBER_PASSWORD must be at least %d characters when SEED_DEMO_DATA is true", minSeedPasswordLength))
 		}
+	}
+
+	// Cookies are sent of HTTPS only unless this is turned off, which only happens in development
+	switch secure := envOrDefault("SECURE_COOKIES", "true"); secure {
+	case "true":
+		cfg.SecureCookies = true
+	case "false":
+		if cfg.Environment == "production" {
+			problems = append(problems, "SECURE_COOKIES cannot be false when APP_ENV is production")
+		}
+	default:
+		problems = append(problems, fmt.Sprintf("SECURE_COOKIES must be true or false, got %q", secure))
 	}
 
 	if len(problems) > 0 {
