@@ -1,3 +1,4 @@
+// Package secretbox encrypts webhook signing secrets before they are stored.
 package secretbox
 
 import (
@@ -29,10 +30,10 @@ func New(key []byte) (*Box, error) {
 	return &Box{aead: aead}, nil
 }
 
-// Seal encrypts plaintext. The results starts with a new random nonce, so
+// Seal encrypts plaintext. The result starts with a new random nonce, so
 // sealing the same plaintext twice gives two different results.
 func (box *Box) Seal(plaintext []byte) []byte {
-	//nolint:gosec // G407 flase positive: NewGCMWithRandomNonce makes the nonce
+	//nolint:gosec // G407 false positive: NewGCMWithRandomNonce makes the nonce
 	// itself, so the nonce argument must be empty.
 	return box.aead.Seal(nil, nil, plaintext, nil)
 }
