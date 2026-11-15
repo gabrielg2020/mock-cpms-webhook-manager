@@ -29,16 +29,16 @@ type UserFinder interface {
 }
 
 type Authenticator struct {
-	users UserFinder
-	slots chan struct{}
-	maxWait time.Duration
+	users     UserFinder
+	slots     chan struct{}
+	maxWait   time.Duration
 	dummyHash string
 }
 
 func NewAuthenticator(users UserFinder) *Authenticator {
 	return &Authenticator{
-		users: users,
-		slots: make(chan struct{}, maxConcurrentChecks),
+		users:   users,
+		slots:   make(chan struct{}, maxConcurrentChecks),
 		maxWait: maxWaitForCheck,
 		// Checked when the email address is unkown, so that attempt takes as long as a real one
 		dummyHash: HashPassword(rand.Text()),
@@ -68,7 +68,7 @@ func (a *Authenticator) Authenticate(ctx context.Context, email, password string
 	}
 
 	if !known || !matches {
-		return 0, ErrInvalidHash
+		return 0, ErrInvalidCredentials
 	}
 	return user.ID, nil
 }
@@ -81,7 +81,7 @@ func (a *Authenticator) waitForSlot(ctx context.Context) error {
 
 	select {
 	case a.slots <- struct{}{}:
-		return  nil
+		return nil
 	case <-timer.C:
 		return ErrBusy
 	case <-ctx.Done():
