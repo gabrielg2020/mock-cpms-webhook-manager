@@ -16,7 +16,7 @@ func healthy(context.Context) error { return nil }
 
 func newTestApplication(t *testing.T, healthCheck HealthCheck) *Application {
 	t.Helper()
-	app, err := New(slog.New(slog.DiscardHandler), healthCheck)
+	app, err := New(Options{Logger: slog.New(slog.DiscardHandler), HealthCheck: healthCheck, Database: newTestDatabase(t), SecureCookies: true})
 	if err != nil {
 		t.Fatalf("create application: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestPages(t *testing.T) {
 		wantStatus int
 		wantText   string
 	}{
-		{name: "home page", target: "/", wantStatus: http.StatusOK, wantText: "Manage your team's CPMS webhooks"},
+		{name: "sign-in page", target: "/sign-in", wantStatus: http.StatusOK, wantText: "Sign in to manage your team's CPMS webhooks"},
 		{name: "unknown address", target: "/no-such-page", wantStatus: http.StatusNotFound, wantText: "Page not found"},
 	}
 
@@ -156,7 +156,7 @@ func TestStaticFiles(t *testing.T) {
 func TestPagesLinkToStaticFilesThatExist(t *testing.T) {
 	app := newTestApplication(t, healthy)
 	routes := app.Routes()
-	page := get(t, routes, "/").Body.String()
+	page := get(t, routes, "/sign-in").Body.String()
 
 	for _, file := range []string{"app.css", "app.js", "js-enabled.js", "favicon.svg"} {
 		address := app.staticPath + "/" + file
