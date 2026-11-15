@@ -10,6 +10,37 @@ import (
 	"database/sql"
 )
 
+const clearFailedSignIns = `-- name: ClearFailedSignIns :exec
+UPDATE users
+SET
+  failed_logins = 0,
+  locked_until = NULL
+WHERE
+  id = ?
+`
+
+func (q *Queries) ClearFailedSignIns(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, clearFailedSignIns, id)
+	return err
+}
+
+const countFailedSignIn = `-- name: CountFailedSignIn :one
+UPDATE users
+SET
+  failed_logins = failed_logins + 1
+WHERE
+  id = ?
+RETURNING
+  failed_logins
+`
+
+func (q *Queries) CountFailedSignIn(ctx context.Context, id int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countFailedSignIn, id)
+	var failed_logins int64
+	err := row.Scan(&failed_logins)
+	return failed_logins, err
+}
+
 const getSignedInUser = `-- name: GetSignedInUser :one
 SELECT
   id,
@@ -65,4 +96,23 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const lockUser = `-- name: LockUser :exec
+UPDATE users
+SET
+  locked_until = ?,
+  failed_logins = 0
+WHERE
+  id = ?
+`
+
+type LockUserParams struct {
+	LockedUntil sql.NullString
+	ID          int64
+}
+
+func (q *Queries) LockUser(ctx context.Context, arg LockUserParams) error {
+	_, err := q.db.ExecContext(ctx, lockUser, arg.LockedUntil, arg.ID)
+	return err
 }
