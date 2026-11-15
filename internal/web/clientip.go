@@ -50,7 +50,7 @@ func clientIP(r *http.Request) netip.Addr {
 	return forwarded.Unmap()
 }
 
-// limiterKey is what a client's attempts are counted under. An IPv6 customer usally has a
+// limiterKey is what a client's attempts are counted under. An IPv6 customer usually has a
 // whole /64 network to choose addresses from, so those are counted together.
 func limiterKey(address netip.Addr) string {
 	if address.Is6() {
