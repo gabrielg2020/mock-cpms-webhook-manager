@@ -17,8 +17,8 @@ const (
 	maxWaitForCheck     = 3 * time.Second
 )
 
-// ErrInvalidCredentials is returned for an unkown email address and for a wrong password alike,
-// so the called cannot tell someone which of the two it was.
+// ErrInvalidCredentials is returned for an unknown email address and for a wrong password alike,
+// so the caller cannot tell someone which of the two it was.
 var ErrInvalidCredentials = errors.New("email address or password is not correct")
 
 // ErrBusy is returned when too many passwords are already being checked
@@ -40,7 +40,7 @@ func NewAuthenticator(users UserFinder) *Authenticator {
 		users:   users,
 		slots:   make(chan struct{}, maxConcurrentChecks),
 		maxWait: maxWaitForCheck,
-		// Checked when the email address is unkown, so that attempt takes as long as a real one
+		// Checked when the email address is unknown, so that attempt takes as long as a real one
 		dummyHash: HashPassword(rand.Text()),
 	}
 }
@@ -74,7 +74,7 @@ func (a *Authenticator) Authenticate(ctx context.Context, email, password string
 }
 
 // waitForSlot limits how many passwords are checked at once. Without a limit, a burst of
-// sign-in attempt could use all the server's memory.
+// sign-in attempts could use all the server's memory.
 func (a *Authenticator) waitForSlot(ctx context.Context) error {
 	timer := time.NewTimer(a.maxWait)
 	defer timer.Stop()

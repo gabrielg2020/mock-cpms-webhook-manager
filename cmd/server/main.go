@@ -49,7 +49,12 @@ func main() {
 		logger.Info("demo data ready")
 	}
 
-	app, err := web.New(logger, db.PingContext)
+	app, err := web.New(web.Options{
+		Logger:        logger,
+		HealthCheck:   db.PingContext,
+		Database:      db,
+		SecureCookies: cfg.SecureCookies,
+	})
 	if err != nil {
 		logger.Error("failed to set up the web application", "error", err)
 		os.Exit(1)

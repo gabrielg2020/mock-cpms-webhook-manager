@@ -17,7 +17,7 @@ import (
 func newLoggedApplication(t *testing.T, healthCheck HealthCheck) (*Application, *bytes.Buffer) {
 	t.Helper()
 	var logs bytes.Buffer
-	app, err := New(slog.New(slog.NewJSONHandler(&logs, nil)), healthCheck)
+	app, err := New(Options{Logger: slog.New(slog.NewJSONHandler(&logs, nil)), HealthCheck: healthCheck, Database: newTestDatabase(t), SecureCookies: true})
 	if err != nil {
 		t.Fatalf("create application: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestHeadRequestsAreAnswered(t *testing.T) {
 		target     string
 		wantStatus int
 	}{
-		{target: "/", wantStatus: http.StatusOK},
+		{target: "/sign-in", wantStatus: http.StatusOK},
 		{target: "/healthz", wantStatus: http.StatusNoContent},
 		{target: "/no-such-page", wantStatus: http.StatusNotFound},
 	}

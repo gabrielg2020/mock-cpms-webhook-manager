@@ -1,0 +1,37 @@
+{{ define "title" }}{{ if .Page.Errors.Any }}Error: {{ end }}Sign in{{ end }}
+
+{{ define "content" }}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    {{ template "error-summary" .Page.Errors }}
+
+    <h1 class="govuk-heading-l">Sign in</h1>
+    <p class="govuk-body">Sign in to manage your team's CPMS webhooks.</p>
+
+    <form method="post" action="/sign-in" novalidate>
+      {{ $emailError := .Page.Errors.For "email" }}
+      <div class="govuk-form-group{{ if $emailError }} govuk-form-group--error{{ end }}">
+        <label class="govuk-label" for="email">Email address</label>
+        {{ if $emailError }}
+        <p id="email-error" class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ $emailError }}</p>
+        {{ end }}
+        <input class="govuk-input{{ if $emailError }} govuk-input--error{{ end }}" id="email" name="email" type="email" value="{{ .Page.Email }}" spellcheck="false" autocomplete="username"{{ if $emailError }} aria-describedby="email-error"{{ end }}>
+      </div>
+
+      {{ $passwordError := .Page.Errors.For "password" }}
+      <div class="govuk-form-group{{ if $passwordError }} govuk-form-group--error{{ end }} govuk-password-input" data-module="govuk-password-input">
+        <label class="govuk-label" for="password">Password</label>
+        {{ if $passwordError }}
+        <p id="password-error" class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ $passwordError }}</p>
+        {{ end }}
+        <div class="govuk-input__wrapper govuk-password-input__wrapper">
+          <input class="govuk-input govuk-password-input__input govuk-js-password-input-input{{ if $passwordError }} govuk-input--error{{ end }}" id="password" name="password" type="password" spellcheck="false" autocomplete="current-password" autocapitalize="none"{{ if $passwordError }} aria-describedby="password-error"{{ end }}>
+          <button type="button" class="govuk-button govuk-button--secondary govuk-password-input__toggle govuk-js-password-input-toggle" data-module="govuk-button" aria-controls="password" aria-label="Show password" hidden>Show</button>
+        </div>
+      </div>
+
+      <button type="submit" class="govuk-button" data-module="govuk-button" data-prevent-double-click="true">Sign in</button>
+    </form>
+  </div>
+</div>
+{{ end }}
