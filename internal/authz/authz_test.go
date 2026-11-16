@@ -94,3 +94,29 @@ func TestIsAdmin(t *testing.T) {
 		}
 	}
 }
+
+func TestVisibleTeam(t *testing.T) {
+	testCases := []struct {
+		name          string
+		subject       Subject
+		wantTeam      int64
+		wantEveryTeam bool
+	}{
+		{name: "an admin sees every team", subject: Subject{Role: RoleAdmin}, wantEveryTeam: true},
+		{name: "an admin in a team still sees every team", subject: Subject{Role: RoleAdmin, TeamID: ownTeam}, wantEveryTeam: true},
+		{name: "a member sees their own team", subject: Subject{Role: RoleMember, TeamID: ownTeam}, wantTeam: ownTeam},
+		{name: "a member with no team sees no team", subject: Subject{Role: RoleMember}},
+		{name: "an unknown role sees no team, even when it has one", subject: Subject{Role: "auditor", TeamID: ownTeam}},
+		{name: "no role sees no team", subject: Subject{TeamID: ownTeam}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			team, everyTeam := VisibleTeam(testCase.subject)
+
+			if team != testCase.wantTeam || everyTeam != testCase.wantEveryTeam {
+				t.Errorf("got team %d and every team %t, want team %d and every team %t", team, everyTeam, testCase.wantTeam, testCase.wantEveryTeam)
+			}
+		})
+	}
+}

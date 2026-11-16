@@ -1,0 +1,59 @@
+{{ define "title" }}{{ .Page.Webhook.Team }} webhook for {{ .Page.Webhook.Environment }}{{ end }}
+
+{{ define "before-content" }}
+<a href="/webhooks" class="govuk-back-link">Back to webhooks</a>
+{{ end }}
+
+{{ define "content" }}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-l">{{ .Page.Webhook.Team }} webhook for {{ .Page.Webhook.Environment }}</h1>
+
+    <dl class="govuk-summary-list">
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Team</dt>
+        <dd class="govuk-summary-list__value">{{ .Page.Webhook.Team }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Environment</dt>
+        <dd class="govuk-summary-list__value">
+          {{ .Page.Webhook.Environment }}
+          {{ if .Page.Webhook.IsProduction }}<strong class="govuk-tag govuk-tag--orange">Production</strong>{{ end }}
+        </dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Destination URL</dt>
+        <dd class="govuk-summary-list__value govuk-!-text-break-word">{{ .Page.Webhook.URL }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Events</dt>
+        <dd class="govuk-summary-list__value">
+          {{ if .Page.Events }}
+          <ul class="govuk-list">
+            {{ range .Page.Events }}
+            <li>{{ .Code }}: {{ .Description }}</li>
+            {{ end }}
+          </ul>
+          {{ else }}
+          None
+          {{ end }}
+        </dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Status</dt>
+        <dd class="govuk-summary-list__value">
+          {{ if .Page.Webhook.Active }}<strong class="govuk-tag govuk-tag--green">Active</strong>{{ else }}<strong class="govuk-tag govuk-tag--grey">Inactive</strong>{{ end }}
+        </dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Signing secret</dt>
+        <dd class="govuk-summary-list__value">Ends with {{ .Page.SecretLastFour }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Last updated</dt>
+        <dd class="govuk-summary-list__value">{{ .Page.UpdatedOn }}</dd>
+      </div>
+    </dl>
+  </div>
+</div>
+{{ end }}

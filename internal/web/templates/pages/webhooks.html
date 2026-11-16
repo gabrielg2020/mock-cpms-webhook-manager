@@ -1,0 +1,44 @@
+{{ define "title" }}Webhooks{{ end }}
+
+{{ define "content" }}
+<h1 class="govuk-heading-l">Webhooks</h1>
+
+{{ if .Page.Webhooks }}
+<table class="govuk-table">
+  <caption class="govuk-table__caption govuk-table__caption--m">{{ if .Page.ShowTeam }}All teams{{ else }}{{ .User.TeamName }} team{{ end }}</caption>
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      {{ if .Page.ShowTeam }}
+      <th scope="col" class="govuk-table__header">Team</th>
+      {{ end }}
+      <th scope="col" class="govuk-table__header">Environment</th>
+      <th scope="col" class="govuk-table__header">Destination URL</th>
+      <th scope="col" class="govuk-table__header">Status</th>
+      <th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Action</span></th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {{ range .Page.Webhooks }}
+    <tr class="govuk-table__row">
+      {{ if $.Page.ShowTeam }}
+      <td class="govuk-table__cell">{{ .Team }}</td>
+      {{ end }}
+      <td class="govuk-table__cell">
+        {{ .Environment }}
+        {{ if .IsProduction }}<strong class="govuk-tag govuk-tag--orange">Production</strong>{{ end }}
+      </td>
+      <td class="govuk-table__cell govuk-!-text-break-word">{{ .URL }}</td>
+      <td class="govuk-table__cell">
+        {{ if .Active }}<strong class="govuk-tag govuk-tag--green">Active</strong>{{ else }}<strong class="govuk-tag govuk-tag--grey">Inactive</strong>{{ end }}
+      </td>
+      <td class="govuk-table__cell">
+        <a class="govuk-link" href="/webhooks/{{ .ID }}">View<span class="govuk-visually-hidden"> the {{ .Team }} webhook for {{ .Environment }}</span></a>
+      </td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+{{ else }}
+<p class="govuk-body">There are no webhooks to show.</p>
+{{ end }}
+{{ end }}
