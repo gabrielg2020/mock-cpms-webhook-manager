@@ -52,3 +52,16 @@ func Allowed(subject Subject, action Action, target WebhookTarget) bool {
 		return false
 	}
 }
+
+// VisibleTeam says whose webhooks a subject may list: every team's, or one team's.
+// Anyone who is neither an admin nor a member gets team 0, which no webhook has.
+func VisibleTeam(subject Subject) (teamID int64, everyTeam bool) {
+	switch subject.Role {
+	case RoleAdmin:
+		return 0, true
+	case RoleMember:
+		return subject.TeamID, false
+	default:
+		return 0, false
+	}
+}

@@ -42,7 +42,7 @@ type Application struct {
 	templates     map[string]*template.Template
 	static        fs.FS
 	staticPath    string
-	queries       *store.Queries
+	queries       store.Querier
 	authenticator *auth.Authenticator
 	sessionStore  *session.Store
 	sessions      *scs.SessionManager
@@ -111,6 +111,8 @@ func (app *Application) Routes() http.Handler {
 		public.Group(func(private chi.Router) {
 			private.Use(app.requireUser)
 			private.Get("/", app.home)
+			private.Get("/webhooks", app.webhookList)
+			private.Get("/webhooks/{id}", app.webhookDetail)
 			private.Get("/sign-out", app.signOutForm)
 			private.Post("/sign-out", app.signOut)
 			private.Route("/admin", func(admin chi.Router) {

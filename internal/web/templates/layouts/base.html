@@ -30,6 +30,9 @@
                 <li class="govuk-service-navigation__item">
                   <span class="govuk-service-navigation__text">Signed in as {{ .DisplayName }}</span>
                 </li>
+                <li class="govuk-service-navigation__item">
+                  <a class="govuk-service-navigation__link" href="/webhooks">Webhooks</a>
+                </li>
                 {{ if .IsAdmin }}
                 <li class="govuk-service-navigation__item">
                   <a class="govuk-service-navigation__link" href="/admin">Admin</a>
@@ -53,6 +56,8 @@
           <span class="govuk-phase-banner__text">This is a university coursework demo, not a government service. All data is fake.</span>
         </p>
       </div>
+
+      {{ block "before-content" . }}{{ end }}
 
       <main class="govuk-main-wrapper" id="main-content">
         {{ template "content" . }}

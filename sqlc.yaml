@@ -8,3 +8,4 @@ sql:
         package: store
         out: internal/store
         initialisms: [id, url, ip]
+        emit_interface: true

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/database"
+	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/secretbox"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/seed"
 	"github.com/go-chi/chi/v5"
 )
@@ -21,7 +22,17 @@ const (
 	testMemberPassword = "another long demo password"
 )
 
-// newTestDatabase returns an empty database in a temporary folder, with the demo accounts.
+// testSecrets returns the box that seals the webhook secrets in the test database.
+func testSecrets(t *testing.T) *secretbox.Box {
+	t.Helper()
+	box, err := secretbox.New(bytes.Repeat([]byte{1}, secretbox.KeySize))
+	if err != nil {
+		t.Fatalf("create secret box: %v", err)
+	}
+	return box
+}
+
+// newTestDatabase returns a database in a temporary folder, with the demo accounts and webhooks.
 func newTestDatabase(t *testing.T) *sql.DB {
 	t.Helper()
 	db, err := database.Open(t.Context(), filepath.Join(t.TempDir(), "app.db"))
@@ -34,7 +45,7 @@ func newTestDatabase(t *testing.T) *sql.DB {
 		t.Fatalf("migrate database: %v", err)
 	}
 	passwords := seed.Passwords{Admin: testAdminPassword, Member: testMemberPassword}
-	if err := seed.DemoData(t.Context(), db, passwords); err != nil {
+	if err := seed.DemoData(t.Context(), db, passwords, testSecrets(t)); err != nil {
 		t.Fatalf("seed database: %v", err)
 	}
 	return db

@@ -76,3 +76,50 @@ func (q *Queries) SeedUser(ctx context.Context, arg SeedUserParams) error {
 	)
 	return err
 }
+
+const seedWebhook = `-- name: SeedWebhook :one
+INSERT INTO webhooks (team_id, environment_id, url, secret_ciphertext, secret_last4, active) VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT (team_id, environment_id) DO NOTHING
+RETURNING id
+`
+
+type SeedWebhookParams struct {
+	TeamID           int64
+	EnvironmentID    int64
+	URL              string
+	SecretCiphertext []byte
+	SecretLast4      string
+	Active           int64
+}
+
+func (q *Queries) SeedWebhook(ctx context.Context, arg SeedWebhookParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, seedWebhook,
+		arg.TeamID,
+		arg.EnvironmentID,
+		arg.URL,
+		arg.SecretCiphertext,
+		arg.SecretLast4,
+		arg.Active,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const seedWebhookEvent = `-- name: SeedWebhookEvent :execrows
+INSERT INTO webhook_events (webhook_id, event_type_id)
+SELECT ?1, event_types.id FROM event_types WHERE event_types.code = ?2
+`
+
+type SeedWebhookEventParams struct {
+	WebhookID int64
+	Code      string
+}
+
+func (q *Queries) SeedWebhookEvent(ctx context.Context, arg SeedWebhookEventParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, seedWebhookEvent, arg.WebhookID, arg.Code)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

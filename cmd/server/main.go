@@ -11,6 +11,7 @@ import (
 
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/config"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/database"
+	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/secretbox"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/seed"
 	"github.com/gabrielg2020/mock-cpms-webhook-manager/internal/web"
 )
@@ -40,9 +41,15 @@ func main() {
 	}
 	logger.Info("database ready", "path", cfg.DatabasePath)
 
+	secrets, err := secretbox.New(cfg.SecretEncryptionKey)
+	if err != nil {
+		logger.Error("failed to set up secret encryption", "error", err)
+		os.Exit(1)
+	}
+
 	if cfg.SeedDemoData {
 		passwords := seed.Passwords{Admin: cfg.SeedAdminPassword, Member: cfg.SeedMemberPassword}
-		if err := seed.DemoData(ctx, db, passwords); err != nil {
+		if err := seed.DemoData(ctx, db, passwords, secrets); err != nil {
 			logger.Error("failed to seed demo data", "error", err)
 			os.Exit(1)
 		}
